@@ -27,6 +27,7 @@ function GridLine({ axis, length, position, color }) {
 
 function CellPlate({
   size,
+  position,
   active,
   onPointerOver,
   onPointerOut,
@@ -50,6 +51,7 @@ function CellPlate({
 
   return (
     <mesh
+      position={position}
       onPointerOver={(e) => {
         e.stopPropagation()
         if (interactive) {
