@@ -1,7 +1,7 @@
 export const BOARD_CONFIGS = {
   3: { win: 3, cell: 1.6 },
   4: { win: 4, cell: 1.25 },
-  5: { win: 4, cell: 1.0 },
+  5: { win: 5, cell: 1.0 },
 }
 
 export const PLAYER_COLORS = {
