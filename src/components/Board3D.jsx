@@ -5,35 +5,46 @@ import { BOARD_CONFIGS, boardIndex } from '../game/constants'
 import OPiece from './pieces/OPiece'
 import XPiece from './pieces/XPiece'
 
-function GridLine({ start, end, color }) {
-  const mid = start.map((v, i) => (v + end[i]) / 2)
-  const length = Math.hypot(...end.map((v, i) => v - start[i]))
+const SLAB_TOP = 0.14
+const PLATE_TOP = 0.2
+const PIECE_Y = { X: 0.625, O: 0.73 }
+
+function GridLine({ axis, length, position, color }) {
+  const args = axis === 'x' ? [length, 0.02, 0.08] : [0.08, 0.02, length]
   return (
-    <mesh position={mid}>
-      <boxGeometry args={[0.05, length, 0.05]} />
+    <mesh position={position}>
+      <boxGeometry args={args} />
       <meshStandardMaterial
         color={color}
         emissive={color}
-        emissiveIntensity={1.4}
+        emissiveIntensity={1.1}
         toneMapped={false}
       />
     </mesh>
   )
 }
 
-function CellPlate({ active, onPointerOver, onPointerOut, onClick, interactive }) {
+function CellPlate({
+  size,
+  active,
+  onPointerOver,
+  onPointerOut,
+  onClick,
+  interactive,
+}) {
   const matRef = useRef()
   const target = useRef(0)
   const current = useRef(0)
 
   useEffect(() => {
-    target.current = active ? 1.1 : 0
+    target.current = active ? 1.2 : 0
   }, [active])
 
   useFrame(() => {
     if (!matRef.current) return
     current.current += (target.current - current.current) * 0.18
     matRef.current.emissiveIntensity = current.current
+    matRef.current.color.set(active ? '#3b2473' : '#201248')
   })
 
   return (
@@ -41,7 +52,7 @@ function CellPlate({ active, onPointerOver, onPointerOut, onClick, interactive }
       onPointerOver={(e) => {
         e.stopPropagation()
         if (interactive) {
-          target.current = 1.1
+          target.current = 1.2
           onPointerOver?.()
         }
       }}
@@ -58,13 +69,13 @@ function CellPlate({ active, onPointerOver, onPointerOut, onClick, interactive }
       }}
       receiveShadow
     >
-      <boxGeometry args={[0.96, 0.08, 0.96]} />
+      <boxGeometry args={[size, 0.06, size]} />
       <meshStandardMaterial
         ref={matRef}
-        color={active ? '#2a1a5e' : '#150b33'}
+        color="#201248"
         emissive="#a855f7"
         emissiveIntensity={0}
-        roughness={0.3}
+        roughness={0.35}
         metalness={0.5}
       />
     </mesh>
@@ -122,8 +133,12 @@ function WinningRing({ position, color = '#facc15' }) {
     ref.current.material.opacity = (1 - t) * 0.8
   })
   return (
-    <mesh ref={ref} position={[position.x, 0.3, position.z]} rotation={[-Math.PI / 2, 0, 0]}>
-      <ringGeometry args={[0.45, 0.55, 32]} />
+    <mesh
+      ref={ref}
+      position={[position.x, PLATE_TOP + 0.06, position.z]}
+      rotation={[-Math.PI / 2, 0, 0]}
+    >
+      <ringGeometry args={[0.4, 0.5, 32]} />
       <meshBasicMaterial
         color={color}
         transparent
@@ -149,6 +164,7 @@ function Board3D({
   const cell = cfg.cell
   const total = n * cell
   const half = total / 2
+  const plateSize = cell * 0.94
 
   const [hoveredIndex, setHoveredIndex] = useState(null)
 
@@ -169,14 +185,16 @@ function Board3D({
     lines.push(
       <GridLine
         key={`v${i}`}
-        start={[t, 0.13, -half]}
-        end={[t, 0.13, half]}
+        axis="z"
+        length={total}
+        position={[t, SLAB_TOP + 0.01, 0]}
         color="#22d3ee"
       />,
       <GridLine
         key={`h${i}`}
-        start={[-half, 0.13, t]}
-        end={[half, 0.13, t]}
+        axis="x"
+        length={total}
+        position={[0, SLAB_TOP + 0.01, t]}
         color="#ec4899"
       />,
     )
@@ -186,9 +204,9 @@ function Board3D({
 
   return (
     <group>
-      <mesh position={[0, 0.06, 0]} receiveShadow>
-        <boxGeometry args={[total + 0.2, 0.12, total + 0.2]} />
-        <meshStandardMaterial color="#1a0f3a" roughness={0.25} metalness={0.7} />
+      <mesh position={[0, 0.07, 0]} receiveShadow>
+        <boxGeometry args={[total + 0.3, 0.14, total + 0.3]} />
+        <meshStandardMaterial color="#221452" roughness={0.3} metalness={0.7} />
       </mesh>
       {lines}
 
@@ -201,7 +219,8 @@ function Board3D({
         return (
           <group key={index}>
             <CellPlate
-              position={[x, 0.14, z]}
+              size={plateSize}
+              position={[x, PLATE_TOP - 0.03, z]}
               active={isHovered || isWinning}
               interactive={interactive}
               onPointerOver={() => {
@@ -213,17 +232,17 @@ function Board3D({
             />
             {isWinning && <WinningRing position={positionsMap[index]} />}
             {value === 'X' && (
-              <group position={[x, 0.55, z]}>
+              <group position={[x, PIECE_Y.X, z]}>
                 <XPiece />
               </group>
             )}
             {value === 'O' && (
-              <group position={[x, 0.55, z]}>
+              <group position={[x, PIECE_Y.O, z]}>
                 <OPiece />
               </group>
             )}
             {!value && isHovered && interactive && currentPlayer && (
-              <group position={[x, 0.55, z]}>
+              <group position={[x, PIECE_Y[currentPlayer], z]}>
                 {currentPlayer === 'X' ? <XPiece opacity={0.22} /> : <OPiece opacity={0.22} />}
               </group>
             )}
