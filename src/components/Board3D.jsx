@@ -204,7 +204,7 @@ function Board3D({
   const positionsMap = Object.fromEntries(positions.map((p) => [p.index, p]))
 
   return (
-    <group>
+    <group position={[0, 0.36, 0]}>
       <mesh position={[0, 0.07, 0]} receiveShadow>
         <boxGeometry args={[total + 0.3, 0.14, total + 0.3]} />
         <meshStandardMaterial color="#221452" roughness={0.3} metalness={0.7} />
