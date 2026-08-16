@@ -66,32 +66,6 @@ function ArcadeHUD({
 }) {
   return (
     <>
-      <div className="pointer-events-none absolute top-4 left-4">
-        <div className="rounded border border-white/15 bg-black/40 px-4 py-3 backdrop-blur-sm">
-          <h3 className="font-pixel text-[9px] tracking-wider text-purple-300">
-            Score
-          </h3>
-          <div className="mt-2.5 flex gap-5">
-            <div className="flex flex-col items-center gap-1">
-              <span className="font-pixel text-[8px] text-fuchsia-400">X</span>
-              <span className="font-pixel text-sm text-fuchsia-300 drop-shadow-[0_0_8px_#ec4899]">
-                {scores.X}
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="font-pixel text-[8px] text-cyan-400">O</span>
-              <span className="font-pixel text-sm text-cyan-300 drop-shadow-[0_0_8px_#22d3ee]">
-                {scores.O}
-              </span>
-            </div>
-            <div className="flex flex-col items-center gap-1">
-              <span className="font-pixel text-[8px] text-slate-500">TIE</span>
-              <span className="font-pixel text-sm text-slate-300">{scores.ties}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div className="pointer-events-none absolute top-5 left-1/2 -translate-x-1/2 text-center">
         <h1 className="font-pixel text-base text-cyan-300 uppercase drop-shadow-[0_0_14px_#22d3ee] sm:text-xl">
           Tateti Arcade
@@ -103,43 +77,65 @@ function ArcadeHUD({
         </p>
       </div>
 
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2">
-        <div className="flex flex-wrap items-end justify-center gap-5 rounded-lg border border-white/15 bg-black/45 px-5 py-4 backdrop-blur-sm">
-          <Segmented
-            label="Mode"
-            options={[
-              { value: 'pvp', label: 'PvP' },
-              { value: 'pve', label: 'VS AI' },
-            ]}
-            value={mode}
-            onChange={onMode}
-          />
-          {mode === 'pve' && (
+      <div className="absolute bottom-4 left-1/2 w-[min(96vw,760px)] -translate-x-1/2">
+        <div className="rounded-lg border border-white/15 bg-black/45 px-5 py-4 backdrop-blur-sm">
+          <div className="mb-4 flex items-center justify-center gap-6">
+            <span className="font-pixel text-[9px] text-purple-300">Score</span>
+            <div className="flex items-center gap-2">
+              <span className="font-pixel text-[9px] text-fuchsia-400">X</span>
+              <span className="font-pixel text-sm text-fuchsia-300 drop-shadow-[0_0_8px_#ec4899]">
+                {scores.X}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-pixel text-[9px] text-cyan-400">O</span>
+              <span className="font-pixel text-sm text-cyan-300 drop-shadow-[0_0_8px_#22d3ee]">
+                {scores.O}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-pixel text-[9px] text-slate-500">TIE</span>
+              <span className="font-pixel text-sm text-slate-300">{scores.ties}</span>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-end justify-center gap-5">
             <Segmented
-              label="Difficulty"
+              label="Mode"
               options={[
-                { value: 'easy', label: 'EASY' },
-                { value: 'medium', label: 'MED' },
-                { value: 'hard', label: 'HARD' },
+                { value: 'pvp', label: 'PvP' },
+                { value: 'pve', label: 'VS AI' },
               ]}
-              value={difficulty}
-              onChange={onDifficulty}
-              colors={DIFF_COLORS}
+              value={mode}
+              onChange={onMode}
             />
-          )}
-          <Segmented
-            label="Board"
-            options={[
-              { value: 3, label: '3x3' },
-              { value: 4, label: '4x4' },
-              { value: 5, label: '5x5' },
-            ]}
-            value={size}
-            onChange={onSize}
-          />
-          <div className="flex gap-2">
-            <ActionButton label="INSERT COIN" variant="coin" onClick={onInsertCoin} />
-            <ActionButton label="RESTART" variant="restart" onClick={onRestart} />
+            {mode === 'pve' && (
+              <Segmented
+                label="Difficulty"
+                options={[
+                  { value: 'easy', label: 'EASY' },
+                  { value: 'medium', label: 'MED' },
+                  { value: 'hard', label: 'HARD' },
+                ]}
+                value={difficulty}
+                onChange={onDifficulty}
+                colors={DIFF_COLORS}
+              />
+            )}
+            <Segmented
+              label="Board"
+              options={[
+                { value: 3, label: '3x3' },
+                { value: 4, label: '4x4' },
+                { value: 5, label: '5x5' },
+              ]}
+              value={size}
+              onChange={onSize}
+            />
+            <div className="flex gap-2">
+              <ActionButton label="INSERT COIN" variant="coin" onClick={onInsertCoin} />
+              <ActionButton label="RESTART" variant="restart" onClick={onRestart} />
+            </div>
           </div>
         </div>
       </div>

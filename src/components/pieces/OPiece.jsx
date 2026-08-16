@@ -1,13 +1,19 @@
 import { useRef } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { PLAYER_COLORS } from '../../game/constants'
+import { prefersReducedMotion } from '../../game/motion'
 
 function OPiece({ opacity = 1 }) {
   const ref = useRef()
   useFrame((_, delta) => {
     if (!ref.current) return
-    const s = Math.min(1, (ref.current.userData.t += delta * 4))
-    ref.current.scale.setScalar(0.2 + 0.8 * (1 - (1 - s) ** 3))
+    if (prefersReducedMotion()) {
+      ref.current.scale.setScalar(1)
+      return
+    }
+    ref.current.userData.t = Math.min(1, ref.current.userData.t + delta * 4)
+    const s = 0.2 + 0.8 * (1 - (1 - ref.current.userData.t) ** 3)
+    ref.current.scale.setScalar(s)
   })
 
   return (

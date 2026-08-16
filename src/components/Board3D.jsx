@@ -139,6 +139,7 @@ function Board3D({
   size = 3,
   board,
   onCellClick,
+  onCellHover = null,
   interactive = true,
   currentPlayer,
   winningLine = null,
@@ -203,7 +204,10 @@ function Board3D({
               position={[x, 0.14, z]}
               active={isHovered || isWinning}
               interactive={interactive}
-              onPointerOver={() => setHoveredIndex(index)}
+              onPointerOver={() => {
+                setHoveredIndex(index)
+                onCellHover?.(index)
+              }}
               onPointerOut={() => setHoveredIndex(null)}
               onClick={() => onCellClick?.(index)}
             />

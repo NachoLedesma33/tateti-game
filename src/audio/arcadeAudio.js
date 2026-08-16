@@ -68,6 +68,56 @@ function scheduleBlips() {
   setTimeout(scheduleBlips, delay + 400)
 }
 
+function tone(freq, { type = 'square', duration = 0.1, volume = 0.08, delay = 0, slideTo = null }) {
+  if (!ctx || !master) return
+  const now = ctx.currentTime + delay
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.type = type
+  osc.frequency.setValueAtTime(freq, now)
+  if (slideTo) {
+    osc.frequency.exponentialRampToValueAtTime(slideTo, now + duration)
+  }
+  gain.gain.setValueAtTime(0.0001, now)
+  gain.gain.exponentialRampToValueAtTime(volume, now + 0.01)
+  gain.gain.exponentialRampToValueAtTime(0.0001, now + duration)
+  osc.connect(gain)
+  gain.connect(master)
+  osc.start(now)
+  osc.stop(now + duration + 0.05)
+}
+
+export function playPlace() {
+  tone(740, { type: 'triangle', duration: 0.09, volume: 0.12 })
+}
+
+export function playHover() {
+  tone(1250, { type: 'sine', duration: 0.035, volume: 0.03 })
+}
+
+export function playWin() {
+  ;[523, 659, 784, 1047].forEach((f, i) =>
+    tone(f, { type: 'square', duration: 0.14, volume: 0.09, delay: i * 0.11 }),
+  )
+}
+
+export function playLose() {
+  ;[523, 415, 349, 262].forEach((f, i) =>
+    tone(f, { type: 'square', duration: 0.16, volume: 0.09, delay: i * 0.13 }),
+  )
+}
+
+export function playDraw() {
+  ;[392, 392].forEach((f, i) =>
+    tone(f, { type: 'triangle', duration: 0.12, volume: 0.08, delay: i * 0.14 }),
+  )
+}
+
+export function playCoin() {
+  tone(988, { type: 'square', duration: 0.07, volume: 0.08 })
+  tone(1319, { type: 'square', duration: 0.16, volume: 0.08, delay: 0.09 })
+}
+
 export function initArcadeAudio() {
   if (ctx) return
   const ac = ensureContext()

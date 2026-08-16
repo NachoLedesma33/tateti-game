@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import Scene from './components/Scene'
 import PostFX from './components/PostFX'
 import Board3D from './components/Board3D'
 import ArcadeHUD from './components/ArcadeHUD'
-import { initArcadeAudio } from './audio/arcadeAudio'
+import { initArcadeAudio, playCoin, playDraw, playHover, playLose, playPlace, playWin } from './audio/arcadeAudio'
 import { createEmptyBoard } from './game/constants'
 import { checkWinner, isBoardFull } from './game/logic'
 import { getAIMove } from './game/ai'
@@ -40,6 +40,15 @@ function App() {
   const [mode, setMode] = useState('pvp')
   const [difficulty, setDifficulty] = useState('medium')
   const [scores, setScores] = useState(loadScores)
+  const hoverSoundRef = useRef({ last: 0 })
+
+  const handleCellHover = useCallback(() => {
+    const now = Date.now()
+    if (now - hoverSoundRef.current.last > 70) {
+      hoverSoundRef.current.last = now
+      playHover()
+    }
+  }, [])
 
   useEffect(() => {
     localStorage.setItem(SCORES_KEY, JSON.stringify(scores))
@@ -69,20 +78,24 @@ function App() {
       const next = [...board]
       next[index] = currentPlayer
       setBoard(next)
+      playPlace()
 
       const result = checkWinner(next, size)
       if (result.winner) {
         setWinner(result.winner)
         setWinningLine(result.line)
+        if (mode === 'pve' && result.winner === AI_PLAYER) playLose()
+        else playWin()
         return
       }
       if (isBoardFull(next)) {
         setDraw(true)
+        playDraw()
         return
       }
       setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X')
     },
-    [board, currentPlayer, winner, draw, size],
+    [board, currentPlayer, winner, draw, size, mode],
   )
 
   const resetGame = useCallback(
@@ -98,6 +111,7 @@ function App() {
   )
 
   const insertCoin = useCallback(() => {
+    playCoin()
     setScores({ ...DEFAULT_SCORES })
     resetGame()
   }, [resetGame])
@@ -143,6 +157,7 @@ function App() {
           interactive={interactive}
           winningLine={winningLine}
           onCellClick={applyMove}
+          onCellHover={handleCellHover}
         />
         <PostFX />
         <OrbitControls
