@@ -5,19 +5,20 @@ import { BOARD_CONFIGS, boardIndex } from '../game/constants'
 import OPiece from './pieces/OPiece'
 import XPiece from './pieces/XPiece'
 
-const SLAB_TOP = 0.14
-const PLATE_TOP = 0.2
-const PIECE_Y = { X: 0.625, O: 0.73 }
+const LINE_Y = 0.15
+const LINE_THICKNESS = 0.05
+const PLATE_TOP = 0.15
+const PIECE_Y = { X: 0.575, O: 0.68 }
 
 function GridLine({ axis, length, position, color }) {
-  const args = axis === 'x' ? [length, 0.02, 0.08] : [0.08, 0.02, length]
+  const args = axis === 'x' ? [length, LINE_THICKNESS, 0.1] : [0.1, LINE_THICKNESS, length]
   return (
     <mesh position={position}>
       <boxGeometry args={args} />
       <meshStandardMaterial
         color={color}
         emissive={color}
-        emissiveIntensity={1.1}
+        emissiveIntensity={1.5}
         toneMapped={false}
       />
     </mesh>
@@ -187,14 +188,14 @@ function Board3D({
         key={`v${i}`}
         axis="z"
         length={total}
-        position={[t, SLAB_TOP + 0.01, 0]}
+        position={[t, LINE_Y, 0]}
         color="#22d3ee"
       />,
       <GridLine
         key={`h${i}`}
         axis="x"
         length={total}
-        position={[0, SLAB_TOP + 0.01, t]}
+        position={[0, LINE_Y, t]}
         color="#ec4899"
       />,
     )

@@ -73,12 +73,12 @@ function Scene() {
       </mesh>
 
       <mesh position={[0, 0.18, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[2.6, 2.9, 0.36, 48]} />
+        <cylinderGeometry args={[2.9, 3.2, 0.36, 48]} />
         <meshStandardMaterial color="#120a2e" roughness={0.35} metalness={0.75} />
       </mesh>
 
-      <NeonRing position={[0, 0.38, 0]} radius={3.0} color="#ec4899" speed={0.35} />
-      <NeonRing position={[0, 0.2, 0]} radius={2.35} color="#22d3ee" speed={-0.25} />
+      <NeonRing position={[0, 0.36, 0]} radius={2.72} color="#ec4899" speed={0.35} />
+      <NeonRing position={[0, 0.3, 0]} radius={3.25} color="#22d3ee" speed={-0.25} />
     </group>
   )
 }
