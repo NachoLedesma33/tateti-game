@@ -1,8 +1,15 @@
 let ctx = null
 let master = null
 let ambientStarted = false
+let muted = false
 
+const MUTE_KEY = 'tateti-sound-muted'
 const PENTATONIC = [261.63, 293.66, 329.63, 392.0, 440.0]
+
+function applyMaster() {
+  if (!master || !ctx) return
+  master.gain.setTargetAtTime(muted ? 0 : 1, ctx.currentTime, 0.02)
+}
 
 function ensureContext() {
   if (!ctx) {
@@ -69,7 +76,7 @@ function scheduleBlips() {
 }
 
 function tone(freq, { type = 'square', duration = 0.1, volume = 0.08, delay = 0, slideTo = null }) {
-  if (!ctx || !master) return
+  if (!ctx || !master || muted) return
   const now = ctx.currentTime + delay
   const osc = ctx.createOscillator()
   const gain = ctx.createGain()
@@ -118,11 +125,31 @@ export function playCoin() {
   tone(1319, { type: 'square', duration: 0.16, volume: 0.08, delay: 0.09 })
 }
 
+export function setMuted(m) {
+  muted = Boolean(m)
+  try {
+    localStorage.setItem(MUTE_KEY, muted ? '1' : '0')
+  } catch {
+    /* storage unavailable */
+  }
+  applyMaster()
+}
+
+export function isMuted() {
+  return muted
+}
+
 export function initArcadeAudio() {
   if (ctx) return
+  try {
+    muted = localStorage.getItem(MUTE_KEY) === '1'
+  } catch {
+    muted = false
+  }
   const ac = ensureContext()
   master = ac.createGain()
   master.gain.setValueAtTime(1, ac.currentTime)
   master.connect(ac.destination)
+  applyMaster()
   startAmbient()
 }

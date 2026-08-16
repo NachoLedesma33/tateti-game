@@ -39,6 +39,8 @@ function ActionButton({ label, onClick, variant }) {
     coin: 'border-yellow-300/70 text-yellow-200 shadow-[0_0_14px_#facc1577] hover:bg-yellow-300/15',
     restart:
       'border-cyan-300/60 text-cyan-200 shadow-[0_0_12px_#22d3ee55] hover:bg-cyan-300/15',
+    sound:
+      'border-slate-400/60 text-slate-200 shadow-[0_0_10px_#94a3b877] hover:bg-white/10',
   }
   return (
     <button
@@ -58,6 +60,8 @@ function ArcadeHUD({
   scores,
   status,
   statusTone,
+  muted,
+  onToggleSound,
   onSize,
   onMode,
   onDifficulty,
@@ -133,6 +137,11 @@ function ArcadeHUD({
               onChange={onSize}
             />
             <div className="flex gap-2">
+              <ActionButton
+                label={muted ? 'SOUND OFF' : 'SOUND ON'}
+                variant="sound"
+                onClick={onToggleSound}
+              />
               <ActionButton label="INSERT COIN" variant="coin" onClick={onInsertCoin} />
               <ActionButton label="RESTART" variant="restart" onClick={onRestart} />
             </div>

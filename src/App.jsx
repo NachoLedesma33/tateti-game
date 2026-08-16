@@ -5,7 +5,8 @@ import Scene from './components/Scene'
 import PostFX from './components/PostFX'
 import Board3D from './components/Board3D'
 import ArcadeHUD from './components/ArcadeHUD'
-import { initArcadeAudio, playCoin, playDraw, playHover, playLose, playPlace, playWin } from './audio/arcadeAudio'
+import WinBanner from './components/WinBanner'
+import { initArcadeAudio, isMuted, playCoin, playDraw, playHover, playLose, playPlace, playWin, setMuted as setAudioMuted } from './audio/arcadeAudio'
 import { createEmptyBoard } from './game/constants'
 import { checkWinner, isBoardFull } from './game/logic'
 import { getAIMove } from './game/ai'
@@ -40,6 +41,7 @@ function App() {
   const [mode, setMode] = useState('pvp')
   const [difficulty, setDifficulty] = useState('medium')
   const [scores, setScores] = useState(loadScores)
+  const [muted, setMuted] = useState(isMuted)
   const hoverSoundRef = useRef({ last: 0 })
 
   const handleCellHover = useCallback(() => {
@@ -130,6 +132,24 @@ function App() {
   const gameOver = Boolean(winner || draw)
   const interactive = !gameOver && !(mode === 'pve' && currentPlayer === AI_PLAYER)
 
+  const bannerKind = winner
+    ? mode === 'pve' && winner === AI_PLAYER
+      ? 'lose'
+      : winner === 'X'
+        ? 'x'
+        : 'o'
+    : draw
+      ? 'draw'
+      : null
+
+  const toggleSound = useCallback(() => {
+    setMuted((prev) => {
+      const next = !prev
+      setAudioMuted(next)
+      return next
+    })
+  }, [])
+
   const status = winner
     ? `${winner} WINS`
     : draw
@@ -179,6 +199,8 @@ function App() {
         scores={scores}
         status={status}
         statusTone={statusTone}
+        muted={muted}
+        onToggleSound={toggleSound}
         onSize={(s) => resetGame(s)}
         onMode={(m) => {
           setMode(m)
@@ -188,6 +210,8 @@ function App() {
         onRestart={() => resetGame()}
         onInsertCoin={insertCoin}
       />
+
+      {bannerKind && <WinBanner kind={bannerKind} scores={scores} onRestart={() => resetGame()} />}
     </div>
   )
 }
