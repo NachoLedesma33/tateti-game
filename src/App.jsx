@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls } from '@react-three/drei'
 import Scene from './components/Scene'
@@ -7,6 +7,9 @@ import Board3D from './components/Board3D'
 import { initArcadeAudio } from './audio/arcadeAudio'
 import { createEmptyBoard } from './game/constants'
 import { checkWinner, isBoardFull } from './game/logic'
+import { getAIMove } from './game/ai'
+
+const AI_PLAYER = 'O'
 
 function App() {
   const [size, setSize] = useState(3)
@@ -15,6 +18,8 @@ function App() {
   const [winner, setWinner] = useState(null)
   const [winningLine, setWinningLine] = useState(null)
   const [draw, setDraw] = useState(false)
+  const [mode, setMode] = useState('pvp')
+  const [difficulty, setDifficulty] = useState('medium')
 
   useEffect(() => {
     const kick = () => initArcadeAudio()
@@ -26,40 +31,62 @@ function App() {
     }
   }, [])
 
-  const resetGame = (nextSize = size) => {
-    setSize(nextSize)
-    setBoard(createEmptyBoard(nextSize))
-    setCurrentPlayer('X')
-    setWinner(null)
-    setWinningLine(null)
-    setDraw(false)
-  }
+  const applyMove = useCallback(
+    (index) => {
+      if (board[index] || winner || draw) return
+      const next = [...board]
+      next[index] = currentPlayer
+      setBoard(next)
 
-  const handleCellClick = (index) => {
-    if (board[index] || winner || draw) return
-    const nextBoard = [...board]
-    nextBoard[index] = currentPlayer
-    setBoard(nextBoard)
+      const result = checkWinner(next, size)
+      if (result.winner) {
+        setWinner(result.winner)
+        setWinningLine(result.line)
+        return
+      }
+      if (isBoardFull(next)) {
+        setDraw(true)
+        return
+      }
+      setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X')
+    },
+    [board, currentPlayer, winner, draw, size],
+  )
 
-    const result = checkWinner(nextBoard, size)
-    if (result.winner) {
-      setWinner(result.winner)
-      setWinningLine(result.line)
-      return
-    }
-    if (isBoardFull(nextBoard)) {
-      setDraw(true)
-      return
-    }
-    setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X')
-  }
+  const resetGame = useCallback(
+    (nextSize = size) => {
+      setSize(nextSize)
+      setBoard(createEmptyBoard(nextSize))
+      setCurrentPlayer('X')
+      setWinner(null)
+      setWinningLine(null)
+      setDraw(false)
+    },
+    [size],
+  )
+
+  const aiTurn = mode === 'pve' && currentPlayer === AI_PLAYER && !winner && !draw
+
+  useEffect(() => {
+    if (!aiTurn) return
+    const timer = setTimeout(() => {
+      const move = getAIMove(board, size, difficulty, AI_PLAYER)
+      if (move !== undefined) applyMove(move)
+    }, 650)
+    return () => clearTimeout(timer)
+  }, [aiTurn, board, size, difficulty, applyMove])
 
   const gameOver = Boolean(winner || draw)
+  const interactive = !gameOver && !(mode === 'pve' && currentPlayer === AI_PLAYER)
   const status = winner
     ? `${winner} WINS!`
     : draw
       ? 'DRAW'
-      : `TURN: ${currentPlayer}`
+      : mode === 'pve' && currentPlayer === AI_PLAYER
+        ? 'CPU THINKING...'
+        : `TURN: ${currentPlayer}`
+
+  const diffLabel = { easy: 'EASY', medium: 'MEDIUM', hard: 'HARD' }
 
   return (
     <div className="relative h-full w-full">
@@ -69,9 +96,9 @@ function App() {
           size={size}
           board={board}
           currentPlayer={currentPlayer}
-          interactive={!gameOver}
+          interactive={interactive}
           winningLine={winningLine}
-          onCellClick={handleCellClick}
+          onCellClick={applyMove}
         />
         <PostFX />
         <OrbitControls
@@ -106,6 +133,39 @@ function App() {
       </div>
 
       <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            setMode(mode === 'pvp' ? 'pve' : 'pvp')
+            resetGame()
+          }}
+          className={`rounded border px-4 py-2 font-mono text-sm tracking-widest transition-all ${
+            mode === 'pve'
+              ? 'border-emerald-300 bg-emerald-400/20 text-emerald-200 shadow-[0_0_14px_#34d399]'
+              : 'border-amber-400/60 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20'
+          }`}
+        >
+          {mode === 'pvp' ? 'PVP' : 'VS AI'}
+        </button>
+
+        {mode === 'pve' &&
+          ['easy', 'medium', 'hard'].map((d) => (
+            <button
+              key={d}
+              type="button"
+              onClick={() => setDifficulty(d)}
+              className={`rounded border px-3 py-2 font-mono text-xs tracking-widest transition-all ${
+                difficulty === d
+                  ? 'border-cyan-300 bg-cyan-400/20 text-cyan-200 shadow-[0_0_14px_#22d3ee]'
+                  : 'border-fuchsia-500/50 bg-fuchsia-500/10 text-fuchsia-300 hover:bg-fuchsia-500/20'
+              }`}
+            >
+              {diffLabel[d]}
+            </button>
+          ))}
+
+        <div className="h-6 w-px bg-white/15" />
+
         {[3, 4, 5].map((s) => (
           <button
             key={s}
