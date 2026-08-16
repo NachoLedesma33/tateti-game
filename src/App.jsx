@@ -4,12 +4,31 @@ import { OrbitControls } from '@react-three/drei'
 import Scene from './components/Scene'
 import PostFX from './components/PostFX'
 import Board3D from './components/Board3D'
+import ArcadeHUD from './components/ArcadeHUD'
 import { initArcadeAudio } from './audio/arcadeAudio'
 import { createEmptyBoard } from './game/constants'
 import { checkWinner, isBoardFull } from './game/logic'
 import { getAIMove } from './game/ai'
 
 const AI_PLAYER = 'O'
+const SCORES_KEY = 'tateti-scores'
+
+const DEFAULT_SCORES = { X: 0, O: 0, ties: 0 }
+
+function loadScores() {
+  try {
+    const raw = localStorage.getItem(SCORES_KEY)
+    if (!raw) return { ...DEFAULT_SCORES }
+    const parsed = JSON.parse(raw)
+    return {
+      X: Number(parsed.X) || 0,
+      O: Number(parsed.O) || 0,
+      ties: Number(parsed.ties) || 0,
+    }
+  } catch {
+    return { ...DEFAULT_SCORES }
+  }
+}
 
 function App() {
   const [size, setSize] = useState(3)
@@ -20,6 +39,19 @@ function App() {
   const [draw, setDraw] = useState(false)
   const [mode, setMode] = useState('pvp')
   const [difficulty, setDifficulty] = useState('medium')
+  const [scores, setScores] = useState(loadScores)
+
+  useEffect(() => {
+    localStorage.setItem(SCORES_KEY, JSON.stringify(scores))
+  }, [scores])
+
+  useEffect(() => {
+    if (winner) {
+      setScores((s) => ({ ...s, [winner]: s[winner] + 1 }))
+    } else if (draw) {
+      setScores((s) => ({ ...s, ties: s.ties + 1 }))
+    }
+  }, [winner, draw])
 
   useEffect(() => {
     const kick = () => initArcadeAudio()
@@ -65,6 +97,11 @@ function App() {
     [size],
   )
 
+  const insertCoin = useCallback(() => {
+    setScores({ ...DEFAULT_SCORES })
+    resetGame()
+  }, [resetGame])
+
   const aiTurn = mode === 'pve' && currentPlayer === AI_PLAYER && !winner && !draw
 
   useEffect(() => {
@@ -78,15 +115,22 @@ function App() {
 
   const gameOver = Boolean(winner || draw)
   const interactive = !gameOver && !(mode === 'pve' && currentPlayer === AI_PLAYER)
+
   const status = winner
-    ? `${winner} WINS!`
+    ? `${winner} WINS`
     : draw
       ? 'DRAW'
       : mode === 'pve' && currentPlayer === AI_PLAYER
-        ? 'CPU THINKING...'
+        ? 'CPU THINKING'
         : `TURN: ${currentPlayer}`
 
-  const diffLabel = { easy: 'EASY', medium: 'MEDIUM', hard: 'HARD' }
+  const statusTone = winner
+    ? 'text-yellow-300'
+    : draw
+      ? 'text-purple-300'
+      : currentPlayer === 'X'
+        ? 'text-fuchsia-400'
+        : 'text-cyan-300'
 
   return (
     <div className="relative h-full w-full">
@@ -113,81 +157,22 @@ function App() {
         />
       </Canvas>
 
-      <div className="pointer-events-none absolute top-5 left-1/2 -translate-x-1/2 text-center">
-        <h1 className="text-2xl font-bold tracking-[0.3em] text-cyan-300 uppercase drop-shadow-[0_0_12px_#22d3ee]">
-          Tateti Arcade 3D
-        </h1>
-        <p
-          className={`mt-2 text-sm font-semibold tracking-[0.25em] uppercase drop-shadow-[0_0_10px_currentColor] ${
-            winner
-              ? 'text-yellow-300'
-              : draw
-                ? 'text-purple-300'
-                : currentPlayer === 'X'
-                  ? 'text-fuchsia-400'
-                  : 'text-cyan-300'
-          }`}
-        >
-          {status}
-        </p>
-      </div>
-
-      <div className="absolute bottom-6 left-1/2 flex -translate-x-1/2 items-center gap-3">
-        <button
-          type="button"
-          onClick={() => {
-            setMode(mode === 'pvp' ? 'pve' : 'pvp')
-            resetGame()
-          }}
-          className={`rounded border px-4 py-2 font-mono text-sm tracking-widest transition-all ${
-            mode === 'pve'
-              ? 'border-emerald-300 bg-emerald-400/20 text-emerald-200 shadow-[0_0_14px_#34d399]'
-              : 'border-amber-400/60 bg-amber-400/10 text-amber-300 hover:bg-amber-400/20'
-          }`}
-        >
-          {mode === 'pvp' ? 'PVP' : 'VS AI'}
-        </button>
-
-        {mode === 'pve' &&
-          ['easy', 'medium', 'hard'].map((d) => (
-            <button
-              key={d}
-              type="button"
-              onClick={() => setDifficulty(d)}
-              className={`rounded border px-3 py-2 font-mono text-xs tracking-widest transition-all ${
-                difficulty === d
-                  ? 'border-cyan-300 bg-cyan-400/20 text-cyan-200 shadow-[0_0_14px_#22d3ee]'
-                  : 'border-fuchsia-500/50 bg-fuchsia-500/10 text-fuchsia-300 hover:bg-fuchsia-500/20'
-              }`}
-            >
-              {diffLabel[d]}
-            </button>
-          ))}
-
-        <div className="h-6 w-px bg-white/15" />
-
-        {[3, 4, 5].map((s) => (
-          <button
-            key={s}
-            type="button"
-            onClick={() => resetGame(s)}
-            className={`rounded border px-4 py-2 font-mono text-sm tracking-widest transition-all ${
-              size === s
-                ? 'border-cyan-300 bg-cyan-400/20 text-cyan-200 shadow-[0_0_14px_#22d3ee]'
-                : 'border-fuchsia-500/50 bg-fuchsia-500/10 text-fuchsia-300 hover:bg-fuchsia-500/20'
-            }`}
-          >
-            {s}x{s}
-          </button>
-        ))}
-        <button
-          type="button"
-          onClick={() => resetGame()}
-          className="rounded border border-yellow-400/60 bg-yellow-400/10 px-4 py-2 font-mono text-sm tracking-widest text-yellow-300 transition-all hover:bg-yellow-400/20"
-        >
-          RESTART
-        </button>
-      </div>
+      <ArcadeHUD
+        size={size}
+        mode={mode}
+        difficulty={difficulty}
+        scores={scores}
+        status={status}
+        statusTone={statusTone}
+        onSize={(s) => resetGame(s)}
+        onMode={(m) => {
+          setMode(m)
+          resetGame()
+        }}
+        onDifficulty={setDifficulty}
+        onRestart={() => resetGame()}
+        onInsertCoin={insertCoin}
+      />
     </div>
   )
 }
