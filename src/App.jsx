@@ -14,6 +14,8 @@ import { getAIMove } from './game/ai'
 const AI_PLAYER = 'O'
 const SCORES_KEY = 'tateti-scores'
 
+const noFx = new URLSearchParams(window.location.search).has('nofx')
+
 const DEFAULT_SCORES = { X: 0, O: 0, ties: 0 }
 
 function loadScores() {
@@ -168,7 +170,7 @@ function App() {
 
   return (
     <div className="relative h-full w-full">
-      <Canvas shadows camera={{ position: [8, 7, 10], fov: 45 }}>
+      <Canvas shadows={!noFx} camera={{ position: [8, 7, 10], fov: 45 }}>
         <Scene />
         <Board3D
           size={size}
@@ -179,7 +181,7 @@ function App() {
           onCellClick={applyMove}
           onCellHover={handleCellHover}
         />
-        <PostFX />
+        {!noFx && <PostFX />}
         <OrbitControls
           enablePan={false}
           enableDamping
