@@ -1,0 +1,14 @@
+@import "tailwindcss";
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  background: #0a0118;
+  color: #e9e5f5;
+  font-family: ui-monospace, 'Segoe UI', monospace;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow: hidden;
+}
