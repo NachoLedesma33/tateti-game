@@ -1,7 +1,22 @@
 export const BOARD_CONFIGS = {
   3: { win: 3, cell: 1.6 },
   4: { win: 4, cell: 1.25 },
-  5: { win: 5, cell: 1.0 },
+  6: { win: 6, cell: 0.85 },
+}
+
+export const DIAGONALS = {
+  3: [
+    [0, 4, 8],
+    [2, 4, 6],
+  ],
+  4: [
+    [0, 5, 10, 15],
+    [3, 6, 9, 12],
+  ],
+  6: [
+    [0, 7, 14, 21, 28, 35],
+    [5, 10, 15, 20, 25, 30],
+  ],
 }
 
 export const PLAYER_COLORS = {

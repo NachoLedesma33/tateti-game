@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { PLAYER_COLORS } from '../../game/constants'
 import { prefersReducedMotion } from '../../game/motion'
 
-function XPiece({ opacity = 1 }) {
+function XPiece({ opacity = 1, emissive = 1 }) {
   const ref = useRef()
   useFrame((_, delta) => {
     if (!ref.current) return
@@ -16,7 +16,7 @@ function XPiece({ opacity = 1 }) {
     ref.current.scale.setScalar(s)
   })
 
-  const intensity = opacity === 1 ? 2.2 : 0.4
+  const intensity = opacity === 1 ? 2.2 * emissive : 0.4
 
   return (
     <group ref={ref} userData={{ t: 0.05 }}>

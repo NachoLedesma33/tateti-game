@@ -1,6 +1,13 @@
-import { getAvailableCells, checkWinner, isBoardFull, getWinningLines } from './logic'
+import {
+  getAvailableCells,
+  checkWinner,
+  isBoardFull,
+  getWinningLines,
+  isAdjacent,
+  canAnyoneWin,
+} from './logic'
 
-const DEPTHS = { 3: Infinity, 4: 4, 5: 3 }
+const DEPTHS = { 3: Infinity, 4: 4, 6: 3 }
 const OTHER = { X: 'O', O: 'X' }
 
 function randomChoice(cells) {
@@ -116,4 +123,133 @@ export function getAIMove(board, size, difficulty, aiPlayer) {
   if (difficulty === 'easy') return easyMove(board, size, aiPlayer)
   if (difficulty === 'medium') return mediumMove(board, size, aiPlayer)
   return hardMove(board, size, aiPlayer)
+}
+
+export function getValidMoves(board, size, player) {
+  const moves = []
+  board.forEach((cell, index) => {
+    if (cell === player) {
+      board.forEach((destCell, destIndex) => {
+        if (destCell === null && isAdjacent(index, destIndex, size)) {
+          moves.push({ from: index, to: destIndex })
+        }
+      })
+    }
+  })
+  return moves
+}
+
+function findWinningMoveClassic(board, size, player) {
+  const moves = []
+  for (const { from, to } of getValidMoves(board, size, player)) {
+    const copy = [...board]
+    copy[to] = copy[from]
+    copy[from] = null
+    if (checkWinner(copy, size).winner === player) moves.push({ from, to })
+  }
+  return moves
+}
+
+function minimaxClassic(board, size, depth, alpha, beta, maximizing, aiPlayer, human, maxDepth) {
+  const result = checkWinner(board, size)
+  if (result.winner === aiPlayer) return 1000000 - depth
+  if (result.winner === human) return -1000000 + depth
+  if (isBoardFull(board)) return 0
+  if (!canAnyoneWin(board, size)) return 0
+  if (depth >= maxDepth) return evaluate(board, size, aiPlayer)
+
+  const player = maximizing ? aiPlayer : human
+  const moves = getValidMoves(board, size, player)
+  if (moves.length === 0) return 0
+
+  if (maximizing) {
+    let best = -Infinity
+    for (const { from, to } of moves) {
+      const copy = [...board]
+      copy[to] = copy[from]
+      copy[from] = null
+      best = Math.max(
+        best,
+        minimaxClassic(copy, size, depth + 1, alpha, beta, false, aiPlayer, human, maxDepth),
+      )
+      alpha = Math.max(alpha, best)
+      if (beta <= alpha) break
+    }
+    return best
+  }
+
+  let best = Infinity
+  for (const { from, to } of moves) {
+    const copy = [...board]
+    copy[to] = copy[from]
+    copy[from] = null
+    best = Math.min(
+      best,
+      minimaxClassic(copy, size, depth + 1, alpha, beta, true, aiPlayer, human, maxDepth),
+    )
+    beta = Math.min(beta, best)
+    if (beta <= alpha) break
+  }
+  return best
+}
+
+function easyMoveClassic(board, size, aiPlayer) {
+  const human = OTHER[aiPlayer]
+  const moves = getValidMoves(board, size, aiPlayer)
+  if (moves.length === 0) return null
+  const blockMoves = findWinningMoveClassic(board, size, human)
+  if (blockMoves.length && Math.random() < 0.2) {
+    return randomChoice(blockMoves)
+  }
+  return randomChoice(moves)
+}
+
+function mediumMoveClassic(board, size, aiPlayer) {
+  const human = OTHER[aiPlayer]
+  const moves = getValidMoves(board, size, aiPlayer)
+  if (moves.length === 0) return null
+  const myWin = findWinningMoveClassic(board, size, aiPlayer)
+  if (myWin.length) return randomChoice(myWin)
+  const block = findWinningMoveClassic(board, size, human)
+  if (block.length) return randomChoice(block)
+  return randomChoice(moves)
+}
+
+function hardMoveClassic(board, size, aiPlayer) {
+  const maxDepth = DEPTHS[size]
+  const human = OTHER[aiPlayer]
+  const moves = getValidMoves(board, size, aiPlayer)
+  if (moves.length === 0) return null
+  let bestScore = -Infinity
+  let bestMoves = []
+
+  for (const { from, to } of moves) {
+    const copy = [...board]
+    copy[to] = copy[from]
+    copy[from] = null
+    const score = minimaxClassic(
+      copy,
+      size,
+      1,
+      -Infinity,
+      Infinity,
+      false,
+      aiPlayer,
+      human,
+      maxDepth,
+    )
+    if (score > bestScore) {
+      bestScore = score
+      bestMoves = [{ from, to }]
+    } else if (score === bestScore) {
+      bestMoves.push({ from, to })
+    }
+  }
+  return randomChoice(bestMoves)
+}
+
+export function getAIMoveClassic(board, size, difficulty, aiPlayer) {
+  if (difficulty === 'easy') return easyMoveClassic(board, size, aiPlayer)
+  if (difficulty === 'medium') return mediumMoveClassic(board, size, aiPlayer)
+  return hardMoveClassic(board, size, aiPlayer)
 }

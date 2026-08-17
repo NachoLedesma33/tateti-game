@@ -8,8 +8,8 @@ import ArcadeHUD from './components/ArcadeHUD'
 import WinBanner from './components/WinBanner'
 import { initArcadeAudio, isMuted, playCoin, playDraw, playHover, playLose, playPlace, playWin, setMuted as setAudioMuted } from './audio/arcadeAudio'
 import { createEmptyBoard } from './game/constants'
-import { checkWinner, isBoardFull } from './game/logic'
-import { getAIMove } from './game/ai'
+import { checkWinner, isBoardFull, canAnyoneWin, isAdjacent } from './game/logic'
+import { getAIMove, getAIMoveClassic } from './game/ai'
 
 const AI_PLAYER = 'O'
 const SCORES_KEY = 'tateti-scores'
@@ -44,6 +44,11 @@ function App() {
   const [difficulty, setDifficulty] = useState('medium')
   const [scores, setScores] = useState(loadScores)
   const [muted, setMuted] = useState(isMuted)
+  const [gameMode, setGameMode] = useState('standard')
+  const [phase, setPhase] = useState('placement')
+  const [pool, setPool] = useState({ X: 0, O: 0 })
+  const [selectedPiece, setSelectedPiece] = useState(null)
+  const [placed, setPlaced] = useState({ X: 0, O: 0 })
   const hoverSoundRef = useRef({ last: 0 })
 
   const handleCellHover = useCallback(() => {
@@ -78,7 +83,47 @@ function App() {
 
   const applyMove = useCallback(
     (index) => {
-      if (board[index] || winner || draw) return
+      if (winner || draw) return
+
+      if (gameMode === 'classic' && phase === 'movement') {
+        if (selectedPiece === null) {
+          if (board[index] === currentPlayer) {
+            setSelectedPiece(index)
+          }
+          return
+        }
+        if (board[index] === null && isAdjacent(selectedPiece, index, size)) {
+          const next = [...board]
+          next[index] = next[selectedPiece]
+          next[selectedPiece] = null
+          setBoard(next)
+          setSelectedPiece(null)
+          playPlace()
+
+          const result = checkWinner(next, size)
+          if (result.winner) {
+            setWinner(result.winner)
+            setWinningLine(result.line)
+            if (mode === 'pve' && result.winner === AI_PLAYER) playLose()
+            else playWin()
+            return
+          }
+          if (!canAnyoneWin(next, size)) {
+            setDraw(true)
+            playDraw()
+            return
+          }
+          setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X')
+        } else if (board[index] === currentPlayer) {
+          setSelectedPiece(index)
+        } else {
+          setSelectedPiece(null)
+        }
+        return
+      }
+
+      if (board[index]) return
+
       const next = [...board]
       next[index] = currentPlayer
       setBoard(next)
@@ -92,14 +137,30 @@ function App() {
         else playWin()
         return
       }
+      if (!canAnyoneWin(next, size)) {
+        setDraw(true)
+        playDraw()
+        return
+      }
       if (isBoardFull(next)) {
         setDraw(true)
         playDraw()
         return
       }
+
+      if (gameMode === 'classic' && phase === 'placement') {
+        const nextPool = { ...pool, [currentPlayer]: pool[currentPlayer] - 1 }
+        setPool(nextPool)
+        const nextPlaced = { ...placed, [currentPlayer]: placed[currentPlayer] + 1 }
+        setPlaced(nextPlaced)
+        if (nextPool.X === 0 && nextPool.O === 0) {
+          setPhase('movement')
+        }
+      }
+
       setCurrentPlayer(currentPlayer === 'X' ? 'O' : 'X')
     },
-    [board, currentPlayer, winner, draw, size, mode],
+    [board, currentPlayer, winner, draw, size, mode, gameMode, phase, pool, placed, selectedPiece],
   )
 
   const resetGame = useCallback(
@@ -110,6 +171,28 @@ function App() {
       setWinner(null)
       setWinningLine(null)
       setDraw(false)
+      setGameMode('standard')
+      setPhase('placement')
+      setPool({ X: 0, O: 0 })
+      setPlaced({ X: 0, O: 0 })
+      setSelectedPiece(null)
+    },
+    [size],
+  )
+
+  const resetGameClassic = useCallback(
+    (nextSize = size) => {
+      setSize(nextSize)
+      setBoard(createEmptyBoard(nextSize))
+      setCurrentPlayer('X')
+      setWinner(null)
+      setWinningLine(null)
+      setDraw(false)
+      setGameMode('classic')
+      setPhase('placement')
+      setPool({ X: nextSize, O: nextSize })
+      setPlaced({ X: 0, O: 0 })
+      setSelectedPiece(null)
     },
     [size],
   )
@@ -125,14 +208,40 @@ function App() {
   useEffect(() => {
     if (!aiTurn) return
     const timer = setTimeout(() => {
-      const move = getAIMove(board, size, difficulty, AI_PLAYER)
-      if (move !== undefined) applyMove(move)
+      if (gameMode === 'classic' && phase === 'movement') {
+        const move = getAIMoveClassic(board, size, difficulty, AI_PLAYER)
+        if (move) {
+          const next = [...board]
+          next[move.to] = next[move.from]
+          next[move.from] = null
+          setBoard(next)
+          playPlace()
+
+          const result = checkWinner(next, size)
+          if (result.winner) {
+            setWinner(result.winner)
+            setWinningLine(result.line)
+            playLose()
+            return
+          }
+          if (!canAnyoneWin(next, size)) {
+            setDraw(true)
+            playDraw()
+            return
+          }
+          setCurrentPlayer(AI_PLAYER === 'X' ? 'O' : 'X')
+        }
+      } else {
+        const move = getAIMove(board, size, difficulty, AI_PLAYER)
+        if (move !== undefined) applyMove(move)
+      }
     }, 650)
     return () => clearTimeout(timer)
-  }, [aiTurn, board, size, difficulty, applyMove])
+  }, [aiTurn, board, size, difficulty, applyMove, gameMode, phase])
 
   const gameOver = Boolean(winner || draw)
-  const interactive = !gameOver && !(mode === 'pve' && currentPlayer === AI_PLAYER)
+  const isAITurn = mode === 'pve' && currentPlayer === AI_PLAYER
+  const interactive = !gameOver && !isAITurn
 
   const bannerKind = winner
     ? mode === 'pve' && winner === AI_PLAYER
@@ -156,9 +265,13 @@ function App() {
     ? `${winner} WINS`
     : draw
       ? 'DRAW'
-      : mode === 'pve' && currentPlayer === AI_PLAYER
+      : isAITurn
         ? 'CPU THINKING'
-        : `TURN: ${currentPlayer}`
+        : gameMode === 'classic' && phase === 'placement'
+          ? `PLACE (${pool[currentPlayer]} LEFT)`
+          : gameMode === 'classic' && phase === 'movement' && selectedPiece !== null
+            ? 'SELECT DESTINATION'
+            : `TURN: ${currentPlayer}`
 
   const statusTone = winner
     ? 'text-yellow-300'
@@ -180,6 +293,9 @@ function App() {
           winningLine={winningLine}
           onCellClick={applyMove}
           onCellHover={handleCellHover}
+          selectedPiece={selectedPiece}
+          gameMode={gameMode}
+          phase={phase}
         />
         {!noFx && <PostFX />}
         <OrbitControls
@@ -202,14 +318,29 @@ function App() {
         status={status}
         statusTone={statusTone}
         muted={muted}
+        gameMode={gameMode}
+        phase={phase}
+        pool={pool}
+        selectedPiece={selectedPiece}
         onToggleSound={toggleSound}
-        onSize={(s) => resetGame(s)}
+        onSize={(s) => {
+          if (gameMode === 'classic') resetGameClassic(s)
+          else resetGame(s)
+        }}
+        onGameMode={(m) => {
+          if (m === 'classic') resetGameClassic()
+          else resetGame()
+        }}
         onMode={(m) => {
           setMode(m)
-          resetGame()
+          if (gameMode === 'classic') resetGameClassic()
+          else resetGame()
         }}
         onDifficulty={setDifficulty}
-        onRestart={() => resetGame()}
+        onRestart={() => {
+          if (gameMode === 'classic') resetGameClassic()
+          else resetGame()
+        }}
         onInsertCoin={insertCoin}
       />
 

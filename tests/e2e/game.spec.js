@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const CELLS = { 3: 1.6, 4: 1.25, 5: 1.0 }
+const CELLS = { 3: 1.6, 4: 1.25, 6: 0.85 }
 const SHOT_DIR = 'screenshots'
 
 function projectPoint(w, h, wx, wy, wz) {
@@ -127,14 +127,14 @@ test('4 - tablero 4x4', async ({ page }) => {
   await shot(page, '4-tablero-4x4')
 })
 
-test('5 - tablero 5x5', async ({ page }) => {
-  await page.getByRole('button', { name: '5x5', exact: true }).click()
+test('5 - tablero 6x6', async ({ page }) => {
+  await page.getByRole('button', { name: '6x6', exact: true }).click()
   for (const i of [0, 1, 2, 3, 6, 7, 8]) {
-    await placeCell(page, 5, i)
+    await placeCell(page, 6, i)
     await page.waitForTimeout(160)
   }
   await rotateView(page)
-  await shot(page, '5-tablero-5x5')
+  await shot(page, '5-tablero-6x6')
 })
 
 test('6 - cartel PLAYER X WINS', async ({ page }) => {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useFrame } from '@react-three/fiber'
 import { Vector3, Quaternion } from 'three'
 import { BOARD_CONFIGS, boardIndex } from '../game/constants'
+import { isAdjacent } from '../game/logic'
 import OPiece from './pieces/OPiece'
 import XPiece from './pieces/XPiece'
 
@@ -29,6 +30,7 @@ function CellPlate({
   size,
   position,
   active,
+  validMove,
   onPointerOver,
   onPointerOut,
   onClick,
@@ -39,14 +41,20 @@ function CellPlate({
   const current = useRef(0)
 
   useEffect(() => {
-    target.current = active ? 1.2 : 0
-  }, [active])
+    target.current = active || validMove ? 1.2 : 0
+  }, [active, validMove])
 
   useFrame(() => {
     if (!matRef.current) return
     current.current += (target.current - current.current) * 0.18
     matRef.current.emissiveIntensity = current.current
-    matRef.current.color.set(active ? '#3b2473' : '#201248')
+    if (validMove) {
+      matRef.current.color.set('#0d5c2e')
+      matRef.current.emissive.set('#22c55e')
+    } else {
+      matRef.current.color.set(active ? '#3b2473' : '#201248')
+      matRef.current.emissive.set('#a855f7')
+    }
   })
 
   return (
@@ -161,6 +169,10 @@ function Board3D({
   interactive = true,
   currentPlayer,
   winningLine = null,
+  selectedPiece = null,
+  validMoves = [],
+  gameMode = 'standard',
+  phase = 'placement',
 }) {
   const cfg = BOARD_CONFIGS[size]
   const n = size
@@ -205,6 +217,20 @@ function Board3D({
 
   const positionsMap = Object.fromEntries(positions.map((p) => [p.index, p]))
 
+  const computedValidMoves = (() => {
+    if (validMoves.length > 0) return validMoves
+    if (gameMode === 'classic' && phase === 'movement' && selectedPiece !== null) {
+      const moves = []
+      board.forEach((cell, index) => {
+        if (cell === null && isAdjacent(selectedPiece, index, size)) {
+          moves.push(index)
+        }
+      })
+      return moves
+    }
+    return []
+  })()
+
   return (
     <group position={[0, 0.36, 0]}>
       <mesh position={[0, 0.07, 0]} receiveShadow>
@@ -219,12 +245,15 @@ function Board3D({
         const value = board[index]
         const isHovered = hoveredIndex === index
         const isWinning = winningLine?.includes(index)
+        const isSelected = selectedPiece === index
+        const isValidMove = computedValidMoves.includes(index)
         return (
           <group key={index}>
             <CellPlate
               size={plateSize}
               position={[x, PLATE_TOP - 0.03, z]}
-              active={isHovered || isWinning}
+              active={isHovered || isWinning || isSelected}
+              validMove={isValidMove}
               interactive={interactive}
               onPointerOver={() => {
                 setHoveredIndex(index)
@@ -235,18 +264,23 @@ function Board3D({
             />
             {isWinning && <WinningRing position={positionsMap[index]} />}
             {value === 'X' && (
-              <group position={[x, PIECE_Y.X, z]}>
-                <XPiece />
+              <group position={[x, isSelected ? PIECE_Y.X + 0.15 : PIECE_Y.X, z]}>
+                <XPiece emissive={isSelected ? 2.5 : 1} />
               </group>
             )}
             {value === 'O' && (
-              <group position={[x, PIECE_Y.O, z]}>
-                <OPiece />
+              <group position={[x, isSelected ? PIECE_Y.O + 0.15 : PIECE_Y.O, z]}>
+                <OPiece emissive={isSelected ? 2.5 : 1} />
               </group>
             )}
-            {!value && isHovered && interactive && currentPlayer && (
+            {!value && isHovered && interactive && currentPlayer && !isValidMove && (
               <group position={[x, PIECE_Y[currentPlayer], z]}>
                 {currentPlayer === 'X' ? <XPiece opacity={0.22} /> : <OPiece opacity={0.22} />}
+              </group>
+            )}
+            {isValidMove && (
+              <group position={[x, PIECE_Y[currentPlayer] - 0.1, z]}>
+                {currentPlayer === 'X' ? <XPiece opacity={0.35} /> : <OPiece opacity={0.35} />}
               </group>
             )}
           </group>

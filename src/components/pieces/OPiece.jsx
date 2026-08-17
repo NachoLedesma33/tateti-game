@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber'
 import { PLAYER_COLORS } from '../../game/constants'
 import { prefersReducedMotion } from '../../game/motion'
 
-function OPiece({ opacity = 1 }) {
+function OPiece({ opacity = 1, emissive = 1 }) {
   const ref = useRef()
   useFrame((_, delta) => {
     if (!ref.current) return
@@ -23,7 +23,7 @@ function OPiece({ opacity = 1 }) {
         <meshStandardMaterial
           color={PLAYER_COLORS.O}
           emissive={PLAYER_COLORS.O}
-          emissiveIntensity={opacity === 1 ? 2.2 : 0.4}
+          emissiveIntensity={(opacity === 1 ? 2.2 : 0.4) * emissive}
           transparent={opacity < 1}
           opacity={opacity}
           toneMapped={false}

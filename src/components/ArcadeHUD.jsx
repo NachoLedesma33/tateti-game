@@ -61,8 +61,12 @@ function ArcadeHUD({
   status,
   statusTone,
   muted,
+  gameMode,
+  phase,
+  pool,
   onToggleSound,
   onSize,
+  onGameMode,
   onMode,
   onDifficulty,
   onRestart,
@@ -79,6 +83,13 @@ function ArcadeHUD({
         >
           {status}
         </p>
+        {gameMode === 'classic' && (
+          <p className="mt-1 font-pixel text-[8px] text-purple-300/60">
+            {phase === 'placement'
+              ? `PLACING · X:${'●'.repeat(pool.X)}${'○'.repeat(size - pool.X)} O:${'●'.repeat(pool.O)}${'○'.repeat(size - pool.O)}`
+              : 'MOVEMENT PHASE'}
+          </p>
+        )}
       </div>
 
       <div className="absolute bottom-4 left-1/2 w-[min(96vw,760px)] -translate-x-1/2">
@@ -104,6 +115,15 @@ function ArcadeHUD({
           </div>
 
           <div className="flex flex-wrap items-end justify-center gap-5">
+            <Segmented
+              label="Game"
+              options={[
+                { value: 'standard', label: 'ESTÁNDAR' },
+                { value: 'classic', label: 'CLÁSICO' },
+              ]}
+              value={gameMode}
+              onChange={onGameMode}
+            />
             <Segmented
               label="Mode"
               options={[
@@ -131,7 +151,7 @@ function ArcadeHUD({
               options={[
                 { value: 3, label: '3x3' },
                 { value: 4, label: '4x4' },
-                { value: 5, label: '5x5' },
+                { value: 6, label: '6x6' },
               ]}
               value={size}
               onChange={onSize}
